@@ -12,39 +12,48 @@ import com.braintreepayments.api.DropInRequest;
 import com.braintreepayments.api.DropInResult;
 import com.braintreepayments.api.UserCanceledException;
 
-public class DropInActivity extends AppCompatActivity implements DropInListener{
+public class DropInActivity extends AppCompatActivity implements DropInListener {
     private DropInClient dropInClient;
-    private Boolean started = false;
     private DropInRequest dropInRequest;
+    private boolean isDropInStarted = false;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_flutter_braintree_drop_in);
+
+        // Retrieve the token and DropInRequest from the intent
         Intent intent = getIntent();
         String token = intent.getStringExtra("token");
-        // DropInClient can also be instantiated with a tokenization key
-        this.dropInClient = new DropInClient(this, token);
-        // Make sure to register listener in onCreate
-        this.dropInClient.setListener(this);
+        if (token == null) {
+            handleError(new IllegalArgumentException("Authorization token is required."));
+            return;
+        }
 
-        this.dropInRequest = intent.getParcelableExtra("dropInRequest");
+        dropInRequest = intent.getParcelableExtra("dropInRequest");
+        if (dropInRequest == null) {
+            handleError(new IllegalArgumentException("DropInRequest is required."));
+            return;
+        }
 
+        // Initialize DropInClient and set the listener
+        dropInClient = new DropInClient(this, token);
+        dropInClient.setListener(this);
     }
 
     @Override
     protected void onStart() {
         super.onStart();
-        if(this.started){
-            return;
+        if (!isDropInStarted) {
+            isDropInStarted = true;
+            dropInClient.launchDropIn(dropInRequest);
         }
-        this.started = true;
-        this.dropInClient.launchDropIn(this.dropInRequest);
     }
 
     @Override
     public void onDropInSuccess(@NonNull DropInResult dropInResult) {
-        this.started = false;
+        // Handle successful Drop-in result
+        isDropInStarted = false;
         Intent result = new Intent();
         result.putExtra("dropInResult", dropInResult);
         setResult(RESULT_OK, result);
@@ -53,14 +62,25 @@ public class DropInActivity extends AppCompatActivity implements DropInListener{
 
     @Override
     public void onDropInFailure(@NonNull Exception error) {
-        this.started = false;
+        // Handle Drop-in failure
+        isDropInStarted = false;
         if (error instanceof UserCanceledException) {
+            // User explicitly canceled the Drop-in flow
             setResult(RESULT_CANCELED);
         } else {
+            // Other errors
             Intent result = new Intent();
             result.putExtra("error", error.getMessage());
-            setResult(2, result);
+            setResult(RESULT_CANCELED, result);
         }
+        finish();
+    }
+
+    private void handleError(Exception error) {
+        // Handle initialization errors
+        Intent result = new Intent();
+        result.putExtra("error", error.getMessage());
+        setResult(RESULT_CANCELED, result);
         finish();
     }
 }

@@ -5,8 +5,7 @@ import 'request.dart';
 import 'result.dart';
 
 class BraintreeDropIn {
-  static const MethodChannel _kChannel =
-      const MethodChannel('flutter_braintree.drop_in');
+  static const MethodChannel _kChannel = const MethodChannel('flutter_braintree.drop_in');
 
   const BraintreeDropIn._();
 
@@ -17,8 +16,7 @@ class BraintreeDropIn {
   ///
   /// Returns a Future that resolves to a [BraintreeDropInResult] containing
   /// all the relevant information, or `null` if the selection was canceled.
-  static Future<BraintreeDropInResult?> start(
-      BraintreeDropInRequest request) async {
+  static Future<BraintreeDropInResult?> start(BraintreeDropInRequest request) async {
     var result = await _kChannel.invokeMethod(
       'start',
       request.toJson(),
